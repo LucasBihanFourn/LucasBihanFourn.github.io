@@ -164,16 +164,43 @@ document.querySelectorAll('.chap[data-word]').forEach(c => {
 const modal = $('#modal'), body = $('#modalBody');
 $('#close').onclick = () => modal.close();
 modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
-/* ---- Détection automatique des images : Images/<id>/cover, logo, ordi-1.., tel-1.., demarche-1.. ---- */
-const DIMS = new Map();   // ratio largeur/hauteur de chaque image chargée
-const loadImg = src => new Promise(res => { const i = new Image(); i.onload = () => { DIMS.set(src, i.naturalWidth / i.naturalHeight); res(src); }; i.onerror = () => res(null); i.src = src; });
-const EXTS = ['png', 'webp', 'jpg', 'jpeg', 'svg'];
-async function findOne(base) { for (const e of EXTS) { const r = await loadImg(`${base}.${e}`); if (r) return r; } return null; }
-async function findImages(base, max = 12) {
-  const out = [];
-  for (let n = 1; n <= max; n++) { const r = await findOne(`${base}-${n}`); if (!r) break; out.push(r); }
-  return out;
+/* ---- Détection automatique des images : Images/<id>/cover, logo, ordi-1.., tel-1.., wireframe-ordi-1.., demarche-1.. ----
+   • simples requêtes HEAD (on ne télécharge plus chaque image juste pour savoir si elle existe), toutes les extensions en parallèle
+   • GitHub Pages est sensible à la casse : si le dossier n'est pas trouvé tel quel (Senlab / senlab), on essaie les variantes et on retient la bonne
+   • les résultats sont gardés en mémoire : la 2e ouverture d'un projet est instantanée */
+const EXTS = ['png', 'webp', 'jpg', 'jpeg', 'svg'], EXTS_UP = ['PNG', 'WEBP', 'JPG', 'JPEG'];   // minuscules d'abord, majuscules seulement si rien trouvé
+const loadImg = src => new Promise(res => { const i = new Image(); i.onload = () => res(src); i.onerror = () => res(null); i.src = src; });
+const exists = src => location.protocol === 'file:' ? loadImg(src).then(Boolean) : fetch(src, { method: 'HEAD' }).then(r => r.ok, () => false);
+const FOLDER = new Map(), memo = new Map();
+const once = (k, f) => { if (!memo.has(k)) memo.set(k, f()); return memo.get(k); };
+const folders = id => FOLDER.has(id) ? [FOLDER.get(id)] : [...new Set([id, id.toLowerCase(), id[0].toUpperCase() + id.slice(1).toLowerCase()])];
+async function pick(folder, name) {
+  for (const list of [EXTS, EXTS_UP]) {
+    const hits = await Promise.all(list.map(e => exists(`Images/${folder}/${name}.${e}`)));
+    const i = hits.indexOf(true); if (i >= 0) return `Images/${folder}/${name}.${list[i]}`;
+  }
+  return null;
 }
+const findOne = (id, name) => once(`1|${id}|${name}`, async () => {
+  for (const f of folders(id)) { const r = await pick(f, name); if (r) { FOLDER.set(id, f); return r; } }
+  return null;
+});
+const findImages = (id, name, max = 12) => once(`n|${id}|${name}`, async () => {
+  const first = await findOne(id, `${name}-1`); if (!first) return [];
+  const folder = FOLDER.get(id), ext = first.split('.').pop();
+  const rest = await Promise.all(Array.from({ length: max - 1 }, (_, i) => exists(`Images/${folder}/${name}-${i + 2}.${ext}`)));   // 11 requêtes en parallèle
+  const out = [first]; let n = 2;
+  while (n <= max && rest[n - 2]) out.push(`Images/${folder}/${name}-${n++}.${ext}`);
+  while (n <= max) { const r = await findOne(id, `${name}-${n}`); if (!r) break; out.push(r); n++; }      // une extension différente au milieu de la série ?
+  return out;
+});
+/* Préchargement : dès qu'on survole (ou sélectionne) une carte, on repère ses images et on charge les premières maquettes : à l'ouverture, tout est prêt */
+const SETS = ['ordi', 'tel', 'wireframe-ordi', 'wireframe-tel'];
+const probe = p => { if (p.mock) [...SETS, 'demarche'].forEach(n => findImages(p.id, n)); };
+const warm = p => { if (!p || !p.mock) return; probe(p);
+  Promise.all(SETS.map(n => findImages(p.id, n))).then(all => all.forEach(l => l.slice(0, 1).forEach(s => { new Image().src = s; }))); };
+$('#projectStack').addEventListener('pointerover', e => { const c = e.target.closest('.pcard'); if (c && e.pointerType === 'mouse') warm(PROJECTS.find(x => x.id === c.dataset.project)); });
+$('#projectStack').addEventListener('focusin', e => { const c = e.target.closest('.pcard'); if (c) warm(PROJECTS.find(x => x.id === c.dataset.project)); });
 /* ---- Couleurs d'une carte = couleurs de sa cover (calculées automatiquement, ou forcées avec theme:{bg,fg,accent}) ---- */
 const INK = '#141210', CREAM = '#EFE6D6', palCache = new Map();
 const hexOf = c => '#' + c.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
@@ -218,8 +245,7 @@ const dateVars = p => p._theme ? `--dc:${p._theme.acc};--dt:${p._theme.accT}` : 
 async function hydrate() {            // cover + logo + couleurs de chaque carte
   const cards = document.querySelectorAll('.pcard');
   await Promise.all(PROJECTS.map(async (p, i) => {
-    const [cover, logo] = await Promise.all([findOne(`Images/${p.id}/cover`), findOne(`Images/${p.id}/logo`)]);
-    p._logo = logo;
+    const cover = await findOne(p.id, 'cover');
     if (cover) cards[i].querySelector('.pcard__img').setAttribute('style', coverStyle(p, cover));
     if (p.theme) applyTheme(cards[i], p, themeFrom(null, p.theme));
     else if (cover) paletteOf(cover).then(pal => applyTheme(cards[i], p, themeFrom(pal)));
@@ -244,7 +270,7 @@ function openProject(id) {
   const p = PROJECTS.find(x => x.id === id), tok = ++openToken;
   const media = p.video
     ? `<video class="visual" style="aspect-ratio:${p.videoRatio || '1/1'}" controls playsinline preload="metadata" poster="${p.poster || p.img}" src="${p.video}#t=0.1"></video>`
-    : p.mock ? '<div class="car-host"></div>' : `<img class="visual" alt="Visuel ${p.title}" hidden>`;
+    : p.mock ? '<div class="car-host"><div class="car-skel" aria-hidden="true"></div></div>' : `<img class="visual" alt="Visuel ${p.title}" hidden>`;
   body.innerHTML = `<div class="meta m-top"><div class="m-top__l"><span class="date" style="${dateVars(p)}">${p.date}</span>${logoHTML(p)}${p.badge ? `<small class="badge">★ ${p.badge}</small>` : ''}</div></div>
     <div class="m-grid${p.mock ? ' m-grid--car' : ''}">
       <div class="m-text">
@@ -258,9 +284,9 @@ function openProject(id) {
   body.querySelector('.huge').classList.add('is-in');
   body.style.setProperty('--pacc', p._theme?.acc || p.color);      // couleur de l'univers du projet (points du carrousel)
   modal.showModal(); syncLock(); body.scrollTop = 0;
-  if (p._logo === undefined) findOne(`Images/${p.id}/logo`).then(l => { p._logo = l; if (l && tok === openToken) body.querySelector('.m-top .date').insertAdjacentHTML('afterend', logoHTML(p)); });
+  if (p._logo === undefined) findOne(p.id, 'logo').then(l => { p._logo = l; if (l && tok === openToken) body.querySelector('.m-top .date').insertAdjacentHTML('afterend', logoHTML(p)); });
   if (p.mock) initMock(p, tok);
-  else if (!p.video) findOne(`Images/${p.id}/${p.visuel || 'visuel'}`).then(src => {       // Images/<id>/affiche.png ou visuel.png
+  else if (!p.video) findOne(p.id, p.visuel || 'visuel').then(src => {       // Images/<id>/affiche.png ou visuel.png
     const v = body.querySelector('.visual'); if (tok !== openToken || !v) return;
     const s = src || p.img; if (s) { v.src = s; v.hidden = false; } else v.remove();
   });
@@ -311,11 +337,12 @@ function mountCarousel(host, groups, o) {
     root.dataset.mode = mode; root.dataset.phase = phase;
     const list = groups[key(phase)][mode] || [];
     track.innerHTML = list.length
-      ? list.map((s, i) => `<figure class="mslide"><button type="button" class="mframe" data-full="${s}"><img src="${s}" alt="${o.alt}" draggable="false"><span class="idx">${i + 1} / ${list.length}</span><span class="zoom">⤢ Voir en entier</span></button></figure>`).join('')
+      ? list.map((s, i) => `<figure class="mslide"><button type="button" class="mframe" data-full="${s}"><img src="${s}" alt="${o.alt}" draggable="false" decoding="async" loading="${i < 2 || mode === 'demarche' ? 'eager' : 'lazy'}"${i === 0 ? ' fetchpriority="high"' : ''}><span class="idx">${i + 1} / ${list.length}</span><span class="zoom">⤢ Voir en entier</span></button></figure>`).join('')
       : `<figure class="mslide"><div class="slot">${o.ph(phase, mode)}</div></figure>`;
-    if (mode === 'demarche') {          // cadre adapté au format réel des images (larges = cartes larges, peu hautes)
-      const rs = list.map(s => DIMS.get(s)).filter(Boolean);
-      if (rs.length) root.style.setProperty('--ar', clamp(rs.reduce((x, y) => x + y) / rs.length, 1.3, 2.8).toFixed(2));
+    if (mode === 'demarche') {          // cadre adapté au format réel des images, mesuré quand elles sont chargées
+      const upd = () => { const rs = [...track.querySelectorAll('img')].filter(im => im.naturalWidth).map(im => im.naturalWidth / im.naturalHeight);
+        if (rs.length) root.style.setProperty('--ar', clamp(rs.reduce((x, y) => x + y) / rs.length, 1.3, 2.8).toFixed(2)); };
+      track.querySelectorAll('img').forEach(im => im.complete ? upd() : im.addEventListener('load', upd));
     }
     slides = [...track.querySelectorAll('.mslide')];
     dots.innerHTML = slides.map((_, i) => `<button type="button" aria-label="Image ${i + 1}"></button>`).join('');
@@ -345,12 +372,14 @@ function mountCarousel(host, groups, o) {
 }
 
 async function initMock(p, tok) {
-  const host = body.querySelector('.car-host'), B = `Images/${p.id}/`;
-  const [mD, mM, wD, wM, dem] = await Promise.all([findImages(B + 'ordi'), findImages(B + 'tel'), findImages(B + 'wireframe-ordi'), findImages(B + 'wireframe-tel'), findImages(B + 'demarche')]);
+  const host = body.querySelector('.car-host');
+  const [mD, mM, wD, wM] = await Promise.all(SETS.map(n => findImages(p.id, n)));
   if (tok !== openToken || !host.isConnected) return;
   mountCarousel(host, { wireframe: { desktop: wD, mobile: wM }, mockup: { desktop: mD, mobile: mM } }, {
     modeLabel: MODE_LBL, alt: `${p.title}`,
     ph: () => 'Bientôt dispo' });
+  const dem = await findImages(p.id, 'demarche');
+  if (tok !== openToken || !host.isConnected) return;
   const box = body.querySelector('.demarche');             // « Démarche » : typo, couleurs, iconographie… en carrousel
   if (dem.length || p.id === 'magan') {
     box.hidden = false;
