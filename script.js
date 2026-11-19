@@ -483,7 +483,8 @@ function makeDraggable(el, placeFn) {
 function placeFigma(el) {          // derrière le « n » de Fourn, dans le coin, sans toucher « Mini-bio »
   const r = anchor.getBoundingClientRect(), t = heroTitle.getBoundingClientRect();
   const bottom = r.top + scrollY + r.height * .62, minTop = t.top + scrollY + 8;
-  let h = Math.max(100, r.height * 1.7); if (bottom - h < minTop) h = Math.max(90, bottom - minTop);
+  const small = innerWidth < 860;
+  let h = Math.max(small ? 64 : 100, r.height * 1.7); if (bottom - h < minTop) h = Math.max(small ? 56 : 90, bottom - minTop);
   const w = h * 38 / 57, left = Math.min(r.right + scrollX - r.width * .1 - w / 2, document.documentElement.clientWidth - w - 14);
   Object.assign(el.style, { width: w + 'px', height: h + 'px', left: left + 'px', top: bottom - h + 'px' });
 }
