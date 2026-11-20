@@ -422,3 +422,17 @@ html.lock{overflow:hidden}
   .car[data-mode=mobile] .zoom{font-size:0;padding:.2rem .45rem}
   .car[data-mode=mobile] .zoom::before{content:"⤢";font-size:.85rem;line-height:1}
 }
+
+/* ===== Téléphone : espacements et dates ===== */
+@media (max-width:860px){
+  /* moins de vide entre « Voir mon CV » et la section Projets */
+  .hero{min-height:0;padding-bottom:1.5rem}
+  #projets{padding-top:3.5rem}
+  /* dates plus petites, logo à droite de la date (jamais en dessous) */
+  .date{font-size:.6rem;padding:.2rem .5rem;box-shadow:2px 2px 0 var(--dbd,#141210)}
+  .m-top{padding-right:54px}
+  .m-top__l{flex-wrap:nowrap;gap:.6rem;min-width:0}
+  .m-top .date{min-width:0}
+  .m-logo{height:38px;margin:-8px 0}
+  .m-top .badge{flex:1 1 0;min-width:0;white-space:normal}
+}
