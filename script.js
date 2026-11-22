@@ -81,6 +81,13 @@ const SKILLS = [
 const chips = a => `<ul class="chips">${a.map((c, k) => `<li style="--k:${k}">${c}</li>`).join('')}</ul>`;
 /* titre de carte : chaque lettre dans un <span> (animation en vague au survol), les mots restent entiers */
 const wave = t => { let n = 0; return t.split(' ').map(w => `<span class="wd" aria-hidden="true">${[...w].map(ch => `<span class="ch" style="--i:${n++}">${ch}</span>`).join('')}</span>`).join(' '); };
+/* compétences d'un projet : 2 puces visibles + « Voir plus » (sur téléphone) pour afficher les autres */
+const chipsMore = (a, n = 2) => `<div class="more-chips"><ul class="chips">${a.map((c, k) => `<li${k >= n ? ' class="x"' : ''}>${c}</li>`).join('')}</ul>${a.length > n ? '<button type="button" class="seemore" aria-expanded="false">Voir plus</button>' : ''}</div>`;
+document.addEventListener('click', e => {
+  const b = e.target.closest('.seemore'); if (!b) return;
+  const box = b.closest('.xp, .more-chips'), open = box.classList.toggle('open');
+  b.textContent = open ? 'Voir moins' : 'Voir plus'; b.setAttribute('aria-expanded', open);
+});
 const slot = src => `<div class="slot" data-src="${src}"></div>`;
 
 /* Chaque projet a son dossier Images/<id>/ : cover.png (image de la carte) et logo.png (optionnel, affiché dans la carte) */
@@ -88,7 +95,7 @@ const coverStyle = (p, src) => `background-image:url('${src}')${p.fit ? `;backgr
 const THEMES = ['', 'pcard--red', 'pcard--cream'];
 $('#projectStack').innerHTML = PROJECTS.map((p, i) => `
   <article class="pcard ${THEMES[i % 3]}" style="--i:${i};--dc:${p.color};--dt:${p.ink || '#141210'}" tabindex="0" role="button" data-project="${p.id}" aria-label="Ouvrir ${p.title}">
-    <div class="pcard__img" ${p.img ? `style="${coverStyle(p, p.img)}"` : ''}></div>
+    <div class="pcard__img" ${p.img ? `style="${coverStyle(p, p.img)}"` : ''}>${p.img ? '' : '<span class="pcard__soon">Bientôt dispo</span>'}</div>
     <div class="pcard__body">
       <span class="date">${p.date}</span>
       <p class="kicker">${p.kind}</p>
@@ -96,6 +103,13 @@ $('#projectStack').innerHTML = PROJECTS.map((p, i) => `
       ${chips(p.chips.slice(0, 3))}
       <span class="more">Voir le détail</span>
     </div></article>`).join('');
+
+/* Téléphone : 4 projets d'abord, puis un bouton pour afficher les autres */
+{ const stack = $('#projectStack');
+  if (PROJECTS.length > 4) {
+    stack.insertAdjacentHTML('afterend', `<div class="stack-more"><button type="button" class="btn btn--red">Voir plus de projets (+${PROJECTS.length - 4})</button></div>`);
+    $('.stack-more .btn').onclick = e => { stack.classList.add('open'); e.currentTarget.parentElement.remove(); };
+  } }
 
 /* Compétences : fiche de stats = radar animé + onglets + détail en chips (rien à lire en bloc) */
 function buildSkills() {
@@ -143,7 +157,7 @@ function buildSkills() {
   root.addEventListener('pointerover', e => { const t = e.target.closest('[data-i]'); if (t && e.pointerType === 'mouse') select(+t.dataset.i, true); });
   select(0); fit(); document.fonts?.ready.then(fit); addEventListener('resize', fit);
   if (!reduce) new IntersectionObserver(es => es.forEach(e => {   // défilement automatique tant que tu n'y touches pas
-    if (e.isIntersecting && !touched && !auto) auto = setInterval(() => select((cur + 1) % N), 3200);
+    if (e.isIntersecting && !touched && !auto && innerWidth >= 860) auto = setInterval(() => { if (innerWidth >= 860) select((cur + 1) % N); }, 3200);   // pas de défilement automatique sur téléphone
     else if (!e.isIntersecting) { clearInterval(auto); auto = null; }
   }), { threshold: .35 }).observe(root);
 }
@@ -246,9 +260,11 @@ async function hydrate() {            // cover + logo + couleurs de chaque carte
   const cards = document.querySelectorAll('.pcard');
   await Promise.all(PROJECTS.map(async (p, i) => {
     const cover = await findOne(p.id, 'cover');
-    if (cover) cards[i].querySelector('.pcard__img').setAttribute('style', coverStyle(p, cover));
+    const logo = !cover && !p.theme ? await findOne(p.id, 'logo') : null;      // pas de cover : la carte prend les couleurs du logo
+    if (logo) p._logo = logo;
+    if (cover) { cards[i].querySelector('.pcard__img').setAttribute('style', coverStyle(p, cover)); cards[i].querySelector('.pcard__soon')?.remove(); }
     if (p.theme) applyTheme(cards[i], p, themeFrom(null, p.theme));
-    else if (cover) paletteOf(cover).then(pal => applyTheme(cards[i], p, themeFrom(pal)));
+    else if (cover || logo) paletteOf(cover || logo).then(pal => applyTheme(cards[i], p, themeFrom(pal)));
   }));
 }
 
@@ -276,7 +292,7 @@ function openProject(id) {
       <div class="m-text">
         <p class="kicker">${p.kind}</p><h2 class="huge">${p.title}</h2>
         ${[].concat(p.long).map(t => `<p class="lead">${t}</p>`).join('')}
-        <h3 class="sub">Compétences</h3>${chips(p.chips)}
+        <h3 class="sub">Compétences</h3>${chipsMore(p.chips)}
       </div>
       <div class="m-media">${media}</div>
     </div>
@@ -510,6 +526,18 @@ const placeAll = () => placers.forEach(f => f());
 addEventListener('resize', placeAll); addEventListener('load', placeAll); document.fonts?.ready.then(placeAll);
 document.querySelectorAll('.line').forEach(l => l.addEventListener('animationend', placeAll));
 placeAll();
+
+/* Titre « UX / UI Designer Junior » : écrit lettre par lettre avec un curseur, puis un reflet le traverse régulièrement */
+(function () {
+  const el = $('.hero__text .big'); if (!el) return;
+  const text = el.textContent.trim(); el.setAttribute('aria-label', text);
+  el.innerHTML = '<span class="role__t"></span><span class="role__c" aria-hidden="true"></span>';
+  const t = $('.role__t', el);
+  if (reduce) { t.textContent = text; el.classList.add('done'); return; }
+  let i = 0;
+  const step = () => { t.textContent = text.slice(0, ++i); if (i < text.length) setTimeout(step, 55 + Math.random() * 55); else el.classList.add('done'); };
+  setTimeout(step, 1500);
+})();
 
 /* ============ CONTACT ============ */
 $('#copyMail').onclick = async function () {

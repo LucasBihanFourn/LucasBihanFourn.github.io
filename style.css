@@ -436,3 +436,36 @@ html.lock{overflow:hidden}
   .m-logo{height:38px;margin:-8px 0}
   .m-top .badge{flex:1 1 0;min-width:0;white-space:normal}
 }
+
+/* ===== Titre du hero : une ligne, machine à écrire, reflet ===== */
+.hero__text .big{white-space:nowrap;min-height:1.2em}
+.role__c{display:inline-block;width:.5em;height:1em;margin-left:.2em;background:var(--red);vertical-align:-.1em;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.big.done .role__t{background:linear-gradient(100deg,transparent 38%,#ffd0c8 50%,transparent 62%) 200% 0/260% 100% no-repeat,var(--red);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 5s ease-in-out infinite}
+@keyframes shimmer{0%,55%{background-position:200% 0}100%{background-position:-60% 0}}
+@media (prefers-reduced-motion:reduce){.role__c,.big.done .role__t{animation:none}}
+
+/* ===== Cover manquante : « Bientôt dispo » (disparaît dès qu'il y a une cover) ===== */
+.pcard__img{position:relative;display:grid;place-items:center}
+.pcard__soon{font:700 .9rem var(--mono);letter-spacing:.1em;text-transform:uppercase;opacity:.65}
+
+/* ===== « Voir plus » (téléphone uniquement) ===== */
+.seemore{display:none}
+.stack-more{display:none}
+@media (max-width:860px){
+  .seemore{display:inline-block;margin-top:.7rem;padding:.35rem .9rem;font:800 .8rem var(--display);background:transparent;color:inherit;border:2px solid currentColor;border-radius:999px;cursor:pointer}
+  .xp .seemore{color:var(--orange)}
+  .more-chips:not(.open) .x,.xp:not(.open) .x{display:none}                /* compétences d'un projet / expérience : le reste est replié */
+  .pcard .chips li:nth-child(n+3){display:none}                            /* cartes de la liste : 2 puces */
+  .stack:not(.open) .pcard:nth-child(n+5){display:none}                    /* 4 projets, puis « Voir plus de projets » */
+  .stack{padding-bottom:1.5rem}
+  .stack-more{display:block;text-align:center;margin-bottom:2rem}
+  /* espace entre « Voir mon CV » et le chapitre 2 */
+  .hero{padding-bottom:3rem}
+  #projets{padding-top:5rem}
+  /* titre du hero sur une seule ligne */
+  .hero__text .big{font-size:clamp(.62rem,2.9vw,1.2rem);letter-spacing:.02em}
+  /* À l'West Fest : « Affiche sélectionnée · Édition 2025 » sous la date, sur une ligne */
+  .m-top__l:has(.badge){flex-wrap:wrap}
+  .m-top .badge{flex:0 0 100%;min-width:0;white-space:nowrap;font-size:.56rem;letter-spacing:0}
+}
