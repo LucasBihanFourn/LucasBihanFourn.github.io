@@ -81,11 +81,9 @@ const SKILLS = [
 const chips = a => `<ul class="chips">${a.map((c, k) => `<li style="--k:${k}">${c}</li>`).join('')}</ul>`;
 /* titre de carte : chaque lettre dans un <span> (animation en vague au survol), les mots restent entiers */
 const wave = t => { let n = 0; return t.split(' ').map(w => `<span class="wd" aria-hidden="true">${[...w].map(ch => `<span class="ch" style="--i:${n++}">${ch}</span>`).join('')}</span>`).join(' '); };
-/* compétences d'un projet : 2 puces visibles + « Voir plus » (sur téléphone) pour afficher les autres */
-const chipsMore = (a, n = 2) => `<div class="more-chips"><ul class="chips">${a.map((c, k) => `<li${k >= n ? ' class="x"' : ''}>${c}</li>`).join('')}</ul>${a.length > n ? '<button type="button" class="seemore" aria-expanded="false">Voir plus</button>' : ''}</div>`;
 document.addEventListener('click', e => {
   const b = e.target.closest('.seemore'); if (!b) return;
-  const box = b.closest('.xp, .more-chips'), open = box.classList.toggle('open');
+  const box = b.closest('.xp'), open = box.classList.toggle('open');
   b.textContent = open ? 'Voir moins' : 'Voir plus'; b.setAttribute('aria-expanded', open);
 });
 const slot = src => `<div class="slot" data-src="${src}"></div>`;
@@ -292,7 +290,7 @@ function openProject(id) {
       <div class="m-text">
         <p class="kicker">${p.kind}</p><h2 class="huge">${p.title}</h2>
         ${[].concat(p.long).map(t => `<p class="lead">${t}</p>`).join('')}
-        <h3 class="sub">Compétences</h3>${chipsMore(p.chips)}
+        <h3 class="sub">Compétences</h3>${chips(p.chips)}
       </div>
       <div class="m-media">${media}</div>
     </div>

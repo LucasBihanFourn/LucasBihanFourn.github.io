@@ -455,7 +455,7 @@ html.lock{overflow:hidden}
 @media (max-width:860px){
   .seemore{display:inline-block;margin-top:.7rem;padding:.35rem .9rem;font:800 .8rem var(--display);background:transparent;color:inherit;border:2px solid currentColor;border-radius:999px;cursor:pointer}
   .xp .seemore{color:var(--orange)}
-  .more-chips:not(.open) .x,.xp:not(.open) .x{display:none}                /* compétences d'un projet / expérience : le reste est replié */
+  .xp:not(.open) .x{display:none}                                          /* expérience : Compétences, Collaboration et puces repliées */
   .pcard .chips li:nth-child(n+3){display:none}                            /* cartes de la liste : 2 puces */
   .stack:not(.open) .pcard:nth-child(n+5){display:none}                    /* 4 projets, puis « Voir plus de projets » */
   .stack{padding-bottom:1.5rem}
@@ -468,4 +468,10 @@ html.lock{overflow:hidden}
   /* À l'West Fest : « Affiche sélectionnée · Édition 2025 » sous la date, sur une ligne */
   .m-top__l:has(.badge){flex-wrap:wrap}
   .m-top .badge{flex:0 0 100%;min-width:0;white-space:nowrap;font-size:.56rem;letter-spacing:0}
+}
+
+/* ===== Téléphone : la date reste sur une seule ligne, c'est le logo qui se réduit pour tenir à sa droite ===== */
+@media (max-width:860px){
+  .m-top .date{white-space:nowrap;flex:0 0 auto;letter-spacing:.01em}   /* date resserrée : plus de place pour le logo */
+  .m-top .m-logo{min-width:0;flex:0 1 auto;object-fit:contain}
 }
