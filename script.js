@@ -7,7 +7,7 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
    theme:{bg,fg,accent} = couleurs de la carte (reprises de la cover) ; color = couleur de repli du bouton de date */
 const PROJECTS = [
   { id:'goeland', title:'Goéland Sentinelle', kind:"Analyse UX · Audit d'interface · Maquettes figma", date:'Septembre 2026 – en cours', color:'#E63329', ink:'#fff',
-    short:'Conception de la nouvelle interface de Goeland Sentinel, une application de géolocalisation développée par Wide-Int.', long:[
+    short:'Conception de la nouvelle interface de Goeland Sentinelle, une application de géolocalisation développée par Wide-Int.', long:[
       "En petite équipe, nous travaillons sur la nouvelle version de Goeland Sentinelle, une application développée par Wide-Int dédiée à la géolocalisation et au suivi en temps réel dans le cadre d’enquêtes.",
       "Après une analyse de l’application existante, nous concevons de nouvelles maquettes afin d’améliorer son ergonomie et l’expérience utilisateur.",
     ],
