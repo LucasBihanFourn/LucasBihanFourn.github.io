@@ -8,7 +8,7 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const PROJECTS = [
   { id:'goeland', title:'Goéland Sentinelle', kind:"Analyse UX · Audit d'interface · Maquettes figma", date:'Septembre 2026 – en cours', color:'#E63329', ink:'#fff',
     short:'Conception de la nouvelle interface de Goeland Sentinel, une application de géolocalisation développée par Wide-Int.', long:[
-      "En petite équipe, nous travaillons sur la nouvelle version de Goeland Sentinel, une application développée par Wide-Int dédiée à la géolocalisation et au suivi en temps réel dans le cadre d’enquêtes.",
+      "En petite équipe, nous travaillons sur la nouvelle version de Goeland Sentinelle, une application développée par Wide-Int dédiée à la géolocalisation et au suivi en temps réel dans le cadre d’enquêtes.",
       "Après une analyse de l’application existante, nous concevons de nouvelles maquettes afin d’améliorer son ergonomie et l’expérience utilisateur.",
     ],
     chips:['Maquettage et Prototypage','Analyse des besoins','Ergonomie','Audit', 'Cahier des Charges'], mock:true },
